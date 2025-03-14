@@ -8,7 +8,7 @@
       "app_description": "A service that crops and resizes user profile photos using face detection and returns the processed image URL.",
       "app_logo": "https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611759.jpg?t=st=1741830322~exp=1741833922~hmac=c6ecb1c74a4dde48124c80b093e08010357d4c8ecd536d470752ee0d0ba83973&w=740",
       "app_name": "Profile Icon Agent",
-      "app_url": "https://telin-profile-icon-agent-production.up.railway.app/",
+      "app_url": "https://b36a-197-211-58-61.ngrok-free.app",
       "background_color": "#F5F5F5"
     },
     "integration_category": "AI & Machine Learning",
@@ -27,6 +27,6 @@
       }
     },
     "settings": [],
-    "target_url": "https://telin-profile-icon-agent-production.up.railway.app/api/v1/target_url"
+    "target_url": "https://b36a-197-211-58-61.ngrok-free.app/api/v1/target_url"
   }
 }
