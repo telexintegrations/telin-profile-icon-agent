@@ -6,7 +6,7 @@ import { uploadImageToCloudinary } from '../utils/saveToCloudinary';
 
 export const targetUrlController = async (req: Request, res: Response): Promise<void> => {
   const { message, settings } = req.body;
-
+  const returnUrl = `https://ping.telex.im/v1/webhooks/01958f9f-fd87-777f-b4ec-cba30f76d81c`
   try {
     // Handle "/help" command
     if (message.toLowerCase().includes("/help")) {
