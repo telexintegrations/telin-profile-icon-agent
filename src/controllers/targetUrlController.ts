@@ -9,7 +9,7 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
   const { message } = req.body;
   console.log(req.body);
 
-  const returnUrl = `https://ping.telex.im/v1/webhooks/01951d20-2f0a-77a2-9224-1f600753b3aa`
+  const returnUrl = `https://ping.telex.im/v1/webhooks/01958f9f-fd87-777f-b4ec-cba30f76d81c`
   try {
     const imageUrl = extractImageUrl(message);
     console.log(imageUrl);

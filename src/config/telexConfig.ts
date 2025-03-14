@@ -1,4 +1,4 @@
-const URL = 'https://telin-profile-icon-agent.onrender.com'
+const URL = 'https://telin-profile-icon-agent-production.up.railway.app'
 
 export const telexConfig: {} = {
   "data": {
