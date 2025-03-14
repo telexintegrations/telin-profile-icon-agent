@@ -28,7 +28,7 @@ export async function cropAndResizeImage(photoUrl: string, faceData: { coordinat
   const croppedAndSquaredImage = await sharp(imageBuffer)
     .extract({ left: x, top: y, width, height })
     .resize(maxDimension, maxDimension, { fit: 'cover' })
-    .jpeg({ quality: 90 })
+    .png({ quality: 90 })
     .toBuffer();
 
   return croppedAndSquaredImage;

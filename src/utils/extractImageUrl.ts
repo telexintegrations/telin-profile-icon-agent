@@ -1,14 +1,13 @@
+import { JSDOM } from 'jsdom';
+
 export function extractImageUrl(message: string): string | null {
-  const parts = message.split(' ');
-  if (parts.length === 2 && parts[0] === '/image') {
-    const url = parts[1];
-    try {
-      new URL(url);  // Validate URL
-      return url;
-    } catch (e) {
-      console.error('Invalid URL:', e);
-      return null;
-    }
+  const dom = new JSDOM(message);
+  const anchorElement = dom.window.document.querySelector('a');
+
+  // If an anchor element with a valid href exists, return its URL
+  if (anchorElement && anchorElement.href) {
+    return anchorElement.href;
   }
-  return null;
+
+  return null; // Return null if no valid URL is found
 }
