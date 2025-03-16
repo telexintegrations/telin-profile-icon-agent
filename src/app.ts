@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors'
 
 // Initialize dotenv for environment variables
 dotenv.config();
@@ -13,6 +14,7 @@ import targetUrlRoute from './routes/targetUrlRouter'
 
 // Middleware to parse JSON
 app.use(express.json());
+app.use(cors())
 app.use('/api/v1', telexConfigRoute)
 app.use('/api/v1', targetUrlRoute)
 
