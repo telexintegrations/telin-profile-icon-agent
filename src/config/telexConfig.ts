@@ -29,6 +29,12 @@ export const telexConfig: {} = {
       }
     },
     "settings": [
+      {
+        "label": "channel_id",
+        "type": "text",
+        "default": "",
+        "required": true
+      }
     ],
     "target_url": `${URL}/api/v1/target-url`
   }

@@ -4,13 +4,13 @@ import dotenv from 'dotenv'
 dotenv.config()
 // Function to detect face using Imagga API and return adjusted cropping data with padding
 export async function detectFaceWithPadding(photoUrl: string, padding: number = 100) {
-   const apiKey = process.env.IMAGGA_API_KEY;
-   const apiSecret = process.env.IMAGGA_API_SECRET;
-  
+  const apiKey = process.env.IMAGGA_API_KEY;
+  const apiSecret = process.env.IMAGGA_API_SECRET;
+
   if (!apiKey || !apiSecret) {
     throw new Error('IMAGGA_API_KEY or IMAGGA_API_SECRET is not defined in the environment variables');
   }
-  
+
   const apiUrl = `https://api.imagga.com/v2/faces/detections?image_url=${encodeURIComponent(photoUrl)}`;
 
   const response = await axios.get(apiUrl, {
@@ -32,9 +32,6 @@ export async function detectFaceWithPadding(photoUrl: string, padding: number = 
   // Assume the first face detection result is the one we need
   const face = faces[0];
   const { coordinates } = face;
-
-  // Log the face data to verify it has valid values
-  console.log('Detected face data:', face);
 
   // Validate the bounding box coordinates
   if (
