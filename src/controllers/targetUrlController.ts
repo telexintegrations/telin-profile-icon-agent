@@ -4,101 +4,120 @@ import { detectFaceWithPadding } from '../utils/faceDetection';
 import { cropAndResizeImage } from '../utils/cropAndResizeImage';
 import { uploadImageToCloudinary } from '../utils/saveToCloudinary';
 import { extractChannelId } from '../utils/extractChannelSettings';
-import { stylePresets } from '../utils/styles';
-import { enhanceImageQuality } from '../utils/imageEnhancer';
-import { removeBackground } from '../utils/backgroundRemover';
+import { sendTelexResponse } from '../utils/sendTelexResponse';
 import { enhanceFacialFeatures } from '../utils/facialEnhancer';
+import { removeBackground } from '../utils/backgroundRemover';
+import { parse } from 'node-html-parser';
 
 const webhookUrl = `https://ping.telex.im/v1/webhooks/`;
 
-export const targetUrlController = async (req: Request, res: Response): Promise<void> => {
-  const { message, style, enableBgRemoval, enableFaceEnhance } = req.body;
+// In-memory state management
+let userState: { [channelId: string]: any } = {};
 
-  console.log("Received message:", message);
+export const targetUrlController = async (req: Request, res: Response): Promise<void> => {
+  const { message } = req.body;
+  console.log(message);
 
   const channelId = extractChannelId(req.body);
   const returnUrl = `${webhookUrl}${channelId}`;
 
+  if (!channelId) {
+    res.status(400).json({ message: "Invalid channel ID" });
+    return;
+  }
+
+  // Initialize the user state if it doesn't exist
+  if (!userState[channelId]) {
+    userState[channelId] = { stage: 'awaiting_image' };
+  }
+
   try {
-    // Handle "/help" command
-    if (message.toLowerCase().includes("/help")) {
-      const helpMessage = `To use this agent, send "/image <url>" to crop and resize the image.`;
-      res.status(200).json({ message: helpMessage });
-      return;
+    const userStage = userState[channelId].stage;
+
+    // Stage 1: Handle initial image upload
+    if (userStage === 'awaiting_image') {
+      const imageUrl = extractImageUrl(message);
+      if (imageUrl) {
+        // Store the image URL and ask for style
+        userState[channelId] = { ...userState[channelId], imageUrl, stage: 'awaiting_style' };
+
+        const styleMessage = `Image received. Please choose a style: "Cool", "Professional", or "Artistic".`;
+        await sendTelexResponse(returnUrl, styleMessage, 'style_request', 'Profile Icon Agent');
+        res.status(200).json({ message: styleMessage });
+        return;
+      } else {
+        res.status(400).json({ message: "Invalid image URL format. Please send a valid image." });
+        return;
+      }
     }
 
-    if (!style || !(style in stylePresets)) {
-      res.status(400).json({ message: "Invalid or missing style parameter" });
-      return;
-    }
-    
-    const selectedStyle = stylePresets[style as keyof typeof stylePresets];    
+    // Stage 2: Handle style selection
+    if (userStage === 'awaiting_style') {
+      const parsedMessage = parse(message);
+      const style = parsedMessage.text.trim().toLowerCase();
+      if (["cool", "professional", "artistic"].includes(style)) {
+        userState[channelId] = { ...userState[channelId], style, stage: 'awaiting_enhancement' };
 
-    // Handle "/image" command
-    const imageUrl = extractImageUrl(message);
-
-    if (!imageUrl) {
-      res.status(400).json({ message: "Invalid image URL" });
-      return;
-    }
-
-    console.log("Processing image:", imageUrl);
-
-    // Process image
-    const faceData = await detectFaceWithPadding(imageUrl);
-    let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, selectedStyle);
-
-    if (enableBgRemoval) {
-      console.log("Removing background...");
-      croppedImageBuffer = await removeBackground(imageUrl);
+        const enhancementMessage = `You selected "${style}". Would you like to enhance the image? (yes/no)`;
+        await sendTelexResponse(returnUrl, enhancementMessage, 'enhancement_request', 'Profile Icon Agent');
+        res.status(200).json({ message: enhancementMessage });
+        return;
+      } else {
+        res.status(400).json({ message: "Invalid style. Please choose 'Cool', 'Professional', or 'Artistic'." });
+        return;
+      }
     }
 
-    if (enableFaceEnhance) {
-      console.log("Enhancing facial features...");
-      croppedImageBuffer = await enhanceFacialFeatures(croppedImageBuffer);
+    // Stage 3: Handle enhancement decision
+    if (userStage === 'awaiting_enhancement') {
+      const parsedMessage = parse(message);
+      const enhancementDecision = parsedMessage.text.trim().toLowerCase();
+      if (["yes", "no"].includes(enhancementDecision)) {
+        userState[channelId] = { ...userState[channelId], enhancement: enhancementDecision === 'yes', stage: 'awaiting_background' };
+
+        const backgroundMessage = `Would you like to remove the background? (yes/no)`;
+        await sendTelexResponse(returnUrl, backgroundMessage, 'background_request', 'Profile Icon Agent');
+        res.status(200).json({ message: backgroundMessage });
+        return;
+      } else {
+        res.status(400).json({ message: "Please respond with 'yes' or 'no'." });
+        return;
+      }
     }
 
-    croppedImageBuffer = await enhanceImageQuality(croppedImageBuffer);
-    
-    const uploadedUrl = await uploadImageToCloudinary(croppedImageBuffer);
+    // Stage 4: Final processing with user decisions
+    if (userStage === 'awaiting_background') {
+      const parsedMessage = parse(message)
+      const backgroundDecision = parsedMessage.text.trim().toLowerCase();
+      if (["yes", "no"].includes(backgroundDecision)) {
+        const { imageUrl, style, enhancement } = userState[channelId];
 
-    // Prepare data to send back to Telex
-    const data = {
-      event_name: 'image_processed',
-      message: `Image successfully processed: ${uploadedUrl}`,
-      status: 'success',
-      username: 'Profile Icon Agent',
-    };
+        // Process the image
+        const faceData = await detectFaceWithPadding(imageUrl);
+        let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, style);
+        if (enhancement) {
+          croppedImageBuffer = await enhanceFacialFeatures(croppedImageBuffer);
+        }
+        // Apply background removal if requested
+        if (backgroundDecision === 'yes') {
+          // Logic for background removal goes here (e.g., a third-party API or custom logic)
+          // For now, we assume it returns an image without the background.
+          croppedImageBuffer = await removeBackground(croppedImageBuffer);
+        }
+        const uploadedUrl = await uploadImageToCloudinary(croppedImageBuffer);
 
-    console.log("Sending request to Telex:", returnUrl);
+        const successMessage = `Your image was successfully processed with the "${style}" style. View it here: ${uploadedUrl}`;
+        await sendTelexResponse(returnUrl, successMessage, 'image_processed', 'Profile Icon Agent');
 
-    // Send the response to Telex return URL
-    const telexResponse = await fetch(returnUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+        // Clean up user session after processing is complete
+        delete userState[channelId];
 
-    console.log("Telex response status:", telexResponse.status);
-
-    if (!telexResponse.ok) {
-      const errorText = await telexResponse.text();
-      throw new Error(`Telex webhook POST request failed with status ${telexResponse.status}: ${errorText}`);
+        res.status(200).json({ message: 'Image successfully processed.' });
+      } else {
+        res.status(400).json({ message: "Please respond with 'yes' or 'no'." });
+      }
     }
-
-    console.log("Final Payload Sent to Telex:", JSON.stringify(data, null, 2));
-
-    // Send success response to client
-    res.status(200).json({ message: `Success`, processedImage: uploadedUrl });
-
   } catch (error: any) {
-    console.error("Error:", error.message);
-
-    if (!res.headersSent) {
-      res.status(500).json({ message: `Error processing message: ${error.message}` });
-    }
+    res.status(500).json({ message: `Error processing message: ${error.message}` });
   }
 };

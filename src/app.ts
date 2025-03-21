@@ -13,10 +13,10 @@ import telexConfigRoute from './routes/integrationRouter'
 import targetUrlRoute from './routes/targetUrlRouter'
 
 // Middleware to parse JSON
+app.use(cors());
 app.use(express.json());
-app.use(cors())
-app.use('/api/v1', telexConfigRoute)
-app.use('/api/v1', targetUrlRoute)
+app.use('/api/v1', telexConfigRoute);
+app.use('/api/v1', targetUrlRoute);
 
 // Default routes
 app.get('/', (req, res) => {
