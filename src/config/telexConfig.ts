@@ -1,4 +1,4 @@
-const URL = 'https://78c5-102-89-44-148.ngrok-free.app'
+const URL = 'https://12fe-102-91-77-227.ngrok-free.app'
 
 export const telexConfig: {} = {
   data: {
@@ -33,7 +33,7 @@ export const telexConfig: {} = {
       {
         label: "channel_id",
         type: "text",
-        default: "",
+        default: "0195a5e6-286f-7513-8490-c402b06e2471",
         required: true
       }
     ],
