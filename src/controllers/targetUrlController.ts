@@ -6,11 +6,13 @@ import { uploadImageToCloudinary } from '../utils/saveToCloudinary';
 import { extractChannelId } from '../utils/extractChannelSettings';
 import { stylePresets } from '../utils/styles';
 import { enhanceImageQuality } from '../utils/imageEnhancer';
+import { removeBackground } from '../utils/backgroundRemover';
+import { enhanceFacialFeatures } from '../utils/facialEnhancer';
 
 const webhookUrl = `https://ping.telex.im/v1/webhooks/`;
 
 export const targetUrlController = async (req: Request, res: Response): Promise<void> => {
-  const { message, style } = req.body;
+  const { message, style, enableBgRemoval, enableFaceEnhance } = req.body;
 
   console.log("Received message:", message);
 
@@ -44,9 +46,20 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
 
     // Process image
     const faceData = await detectFaceWithPadding(imageUrl);
-    let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, stylePresets[style as keyof typeof stylePresets]);
+    let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, selectedStyle);
+
+    if (enableBgRemoval) {
+      console.log("Removing background...");
+      croppedImageBuffer = await removeBackground(imageUrl);
+    }
+
+    if (enableFaceEnhance) {
+      console.log("Enhancing facial features...");
+      croppedImageBuffer = await enhanceFacialFeatures(croppedImageBuffer);
+    }
 
     croppedImageBuffer = await enhanceImageQuality(croppedImageBuffer);
+    
     const uploadedUrl = await uploadImageToCloudinary(croppedImageBuffer);
 
     // Prepare data to send back to Telex
