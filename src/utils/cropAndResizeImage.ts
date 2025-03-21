@@ -4,7 +4,7 @@ import axios from 'axios';
 export async function cropAndResizeImage(
   photoUrl: string,
   faceData: { coordinates: any; padding: number },
-  style: any
+  style: any | null
 ) {
   const { coordinates, padding } = faceData;
 
@@ -34,12 +34,16 @@ export async function cropAndResizeImage(
     .resize(maxDimension, maxDimension, { fit: 'cover' }) // Make it square
     .png({ quality: 90 });
 
-  // Apply filters based on the style
-  if (style.grayscale) processedImage = processedImage.grayscale();
-  if (style.sepia) processedImage = processedImage.tint({ r: 112, g: 66, b: 20 });
-  if (style.contrast) processedImage = processedImage.linear(style.contrast, 0);
-  if (style.blur) processedImage = processedImage.blur(style.blur);
-  if (style.sharpness) processedImage = processedImage.sharpen(style.sharpness);
+  // ✅ Only apply styles if style is defined
+  if (style) {
+    if (style.grayscale) processedImage = processedImage.grayscale();
+    if (style.sepia) processedImage = processedImage.tint({ r: 112, g: 66, b: 20 });
+    if (style.contrast) processedImage = processedImage.linear(style.contrast, 0);
+    if (style.blur) processedImage = processedImage.blur(style.blur);
+    if (style.sharpness) processedImage = processedImage.sharpen(style.sharpness);
+  } else {
+    console.log("No style selected, using default cropping.");
+  }
 
   return processedImage.toBuffer();
 }

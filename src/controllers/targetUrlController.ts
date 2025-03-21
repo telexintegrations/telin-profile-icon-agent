@@ -1,18 +1,18 @@
-import { Request, Response } from 'express';
-import { extractImageUrl } from '../utils/extractImageUrl';
-import { detectFaceWithPadding } from '../utils/faceDetection';
-import { cropAndResizeImage } from '../utils/cropAndResizeImage';
-import { uploadImageToCloudinary } from '../utils/saveToCloudinary';
-import { extractChannelId } from '../utils/extractChannelSettings';
-import { stylePresets } from '../utils/styles';
-import { enhanceImageQuality } from '../utils/imageEnhancer';
-import { removeBackground } from '../utils/backgroundRemover';
-import { enhanceFacialFeatures } from '../utils/facialEnhancer';
+import { Request, Response } from "express";
+import { extractImageUrl } from "../utils/extractImageUrl";
+import { detectFaceWithPadding } from "../utils/faceDetection";
+import { cropAndResizeImage } from "../utils/cropAndResizeImage";
+import { uploadImageToCloudinary } from "../utils/saveToCloudinary";
+import { extractChannelId } from "../utils/extractChannelSettings";
+import { stylePresets } from "../utils/styles";
+import { enhanceImageQuality } from "../utils/imageEnhancer";
+import { removeBackground } from "../utils/backgroundRemover";
+import { enhanceFacialFeatures } from "../utils/facialEnhancer";
 
 const webhookUrl = `https://ping.telex.im/v1/webhooks/`;
 
 export const targetUrlController = async (req: Request, res: Response): Promise<void> => {
-  const { message, style, enableBgRemoval, enableFaceEnhance } = req.body;
+  const { message, style, enableBgRemoval = false, enableFaceEnhance = false } = req.body;
 
   console.log("Received message:", message);
 
@@ -27,13 +27,6 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
       return;
     }
 
-    if (!style || !(style in stylePresets)) {
-      res.status(400).json({ message: "Invalid or missing style parameter" });
-      return;
-    }
-    
-    const selectedStyle = stylePresets[style as keyof typeof stylePresets];    
-
     // Handle "/image" command
     const imageUrl = extractImageUrl(message);
 
@@ -44,40 +37,54 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
 
     console.log("Processing image:", imageUrl);
 
-    // Process image
+    // Detect face with padding
     const faceData = await detectFaceWithPadding(imageUrl);
-    let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, selectedStyle);
 
+    let croppedImageBuffer;
+
+    // Apply style only if provided
+    if (style && style in stylePresets) {
+      const selectedStyle = stylePresets[style as keyof typeof stylePresets];
+      croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, selectedStyle);
+    } else {
+      console.log("No style selected, using default cropping.");
+      croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, null); // Modify function to handle `null` styles
+    }
+
+    // Optional background removal
     if (enableBgRemoval) {
       console.log("Removing background...");
       croppedImageBuffer = await removeBackground(imageUrl);
     }
 
+    // Optional facial enhancement
     if (enableFaceEnhance) {
       console.log("Enhancing facial features...");
       croppedImageBuffer = await enhanceFacialFeatures(croppedImageBuffer);
     }
 
+    // Always enhance image quality
     croppedImageBuffer = await enhanceImageQuality(croppedImageBuffer);
-    
+
+    // Upload to Cloudinary
     const uploadedUrl = await uploadImageToCloudinary(croppedImageBuffer);
 
     // Prepare data to send back to Telex
     const data = {
-      event_name: 'image_processed',
+      event_name: "image_processed",
       message: `Image successfully processed: ${uploadedUrl}`,
-      status: 'success',
-      username: 'Profile Icon Agent',
+      status: "success",
+      username: "Profile Icon Agent",
     };
 
     console.log("Sending request to Telex:", returnUrl);
 
     // Send the response to Telex return URL
     const telexResponse = await fetch(returnUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
@@ -93,7 +100,6 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
 
     // Send success response to client
     res.status(200).json({ message: `Success`, processedImage: uploadedUrl });
-
   } catch (error: any) {
     console.error("Error:", error.message);
 
