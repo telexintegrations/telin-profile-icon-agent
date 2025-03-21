@@ -18,7 +18,7 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
   try {
     // Handle "/help" command
     if (message.toLowerCase().includes("/help")) {
-      const helpMessage = `To use this agent, send "/image <url>" to crop and resize the image.`;
+      const helpMessage = `To use this agent, send "/image 'image url'" to crop and resize the image.`;
       res.status(200).json({ message: helpMessage });
       return;
     }
