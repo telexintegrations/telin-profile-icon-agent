@@ -1,4 +1,4 @@
-const URL = 'https://a445-102-89-46-50.ngrok-free.app'
+const URL = 'https://78c5-102-89-44-148.ngrok-free.app'
 
 export const telexConfig: {} = {
   data: {
