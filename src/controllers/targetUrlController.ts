@@ -5,6 +5,7 @@ import { cropAndResizeImage } from '../utils/cropAndResizeImage';
 import { uploadImageToCloudinary } from '../utils/saveToCloudinary';
 import { extractChannelId } from '../utils/extractChannelSettings';
 import { stylePresets } from '../utils/styles';
+import { enhanceImageQuality } from '../utils/imageEnhancer';
 
 const webhookUrl = `https://ping.telex.im/v1/webhooks/`;
 
@@ -43,7 +44,9 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
 
     // Process image
     const faceData = await detectFaceWithPadding(imageUrl);
-    const croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, stylePresets[style as keyof typeof stylePresets]);
+    let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, stylePresets[style as keyof typeof stylePresets]);
+
+    croppedImageBuffer = await enhanceImageQuality(croppedImageBuffer);
     const uploadedUrl = await uploadImageToCloudinary(croppedImageBuffer);
 
     // Prepare data to send back to Telex
