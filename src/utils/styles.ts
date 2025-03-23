@@ -35,4 +35,5 @@ export const stylePresets = {
         saturation: 1.1,
         vignette: true,
     },
+    none: {}
 };

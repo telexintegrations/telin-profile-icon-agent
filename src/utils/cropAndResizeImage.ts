@@ -36,6 +36,7 @@ export async function cropAndResizeImage(
     .resize(maxDimension, maxDimension, { fit: 'cover' }) // Make it square
     .png({ quality: 90 });
 
+
   // Apply filters based on the style
   if ('grayscale' in style) processedImage = processedImage.grayscale();
   if ('sepia' in style) processedImage = processedImage.tint({ r: 112, g: 66, b: 20 });
