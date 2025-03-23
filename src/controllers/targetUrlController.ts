@@ -55,7 +55,7 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
     if (userStage === 'awaiting_style') {
       const parsedMessage = parse(message);
       const style = parsedMessage.text.trim().toLowerCase();
-      if (["cool", "professional", "artistic", "retro", "vibrant", "cinematic"].includes(style)) {
+      if (["cool", "professional", "artistic", "retro", "vibrant", "cinematic", "none"].includes(style)) {
         userState[channelId] = { ...userState[channelId], style, stage: 'awaiting_enhancement' };
 
         const enhancementMessage = `👌 You selected "${style}". Would you like to enhance the image further for more sharpness and clarity? (yes/no)`;
@@ -63,7 +63,7 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
         res.status(200).json({ message: parsedMessage });
         return;
       } else {
-        res.status(200).json({ message: "Invalid style. Please choose 'Cool', 'Professional', 'Artistic', 'Retro', 'Vibrant', or 'cinematic'." });
+        res.status(200).json({ message: "Invalid style. Please choose 'Cool', 'Professional', 'Artistic', 'Retro', 'Vibrant', 'cinematic', or 'None'." });
         return;
       }
     }
