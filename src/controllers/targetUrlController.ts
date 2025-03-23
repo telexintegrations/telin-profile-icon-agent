@@ -41,9 +41,9 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
         // Store the image URL and ask for style
         userState[channelId] = { ...userState[channelId], imageUrl, stage: 'awaiting_style' };
 
-        const styleMessage = `Image received. Please choose a style: "Cool", "Professional", or "Artistic".`;
+        const styleMessage = `🎉 Great! Your image has been received. Please choose a style for your profile icon: "Cool", "Professional", "Artistic", "Retro", "Vibrant", "Cinematic" or "None".`;
         await sendTelexResponse(returnUrl, styleMessage, 'style_request', 'Profile Icon Agent');
-        res.status(200).json({ message: styleMessage });
+        res.status(200).json({ message: message });
         return;
       } else {
         res.status(400).json({ message: "Invalid image URL format. Please send a valid image." });
@@ -55,12 +55,12 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
     if (userStage === 'awaiting_style') {
       const parsedMessage = parse(message);
       const style = parsedMessage.text.trim().toLowerCase();
-      if (["cool", "professional", "artistic"].includes(style)) {
+      if (["cool", "professional", "artistic", "retro", "vibrant", "cinematic"].includes(style)) {
         userState[channelId] = { ...userState[channelId], style, stage: 'awaiting_enhancement' };
 
-        const enhancementMessage = `You selected "${style}". Would you like to enhance the image? (yes/no)`;
+        const enhancementMessage = `👌 You selected "${style}". Would you like to enhance the image further for more sharpness and clarity? (yes/no)`;
         await sendTelexResponse(returnUrl, enhancementMessage, 'enhancement_request', 'Profile Icon Agent');
-        res.status(200).json({ message: enhancementMessage });
+        res.status(200).json({ message: parsedMessage });
         return;
       } else {
         res.status(400).json({ message: "Invalid style. Please choose 'Cool', 'Professional', or 'Artistic'." });
@@ -75,9 +75,9 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
       if (["yes", "no"].includes(enhancementDecision)) {
         userState[channelId] = { ...userState[channelId], enhancement: enhancementDecision === 'yes', stage: 'awaiting_background' };
 
-        const backgroundMessage = `Would you like to remove the background? (yes/no)`;
+        const backgroundMessage = `✨ Would you like to remove the background for a cleaner look? (yes/no)`;
         await sendTelexResponse(returnUrl, backgroundMessage, 'background_request', 'Profile Icon Agent');
-        res.status(200).json({ message: backgroundMessage });
+        res.status(200).json({ message: parsedMessage });
         return;
       } else {
         res.status(400).json({ message: "Please respond with 'yes' or 'no'." });
@@ -91,22 +91,25 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
       const backgroundDecision = parsedMessage.text.trim().toLowerCase();
       if (["yes", "no"].includes(backgroundDecision)) {
         const { imageUrl, style, enhancement } = userState[channelId];
+        userState[channelId] = { ...userState[channelId], background: backgroundDecision === 'yes' };
 
         // Process the image
         const faceData = await detectFaceWithPadding(imageUrl);
+        if (!faceData.coordinates || faceData.coordinates.length === 0) {
+          const errorMessage = `😞 Unfortunately, we couldn't detect a face in the image. Please upload a clearer image where your face is visible.`;
+          await sendTelexResponse(returnUrl, errorMessage, 'error', 'Profile Icon Agent');
+        }
         let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, style);
         if (enhancement) {
           croppedImageBuffer = await enhanceFacialFeatures(croppedImageBuffer);
         }
         // Apply background removal if requested
         if (backgroundDecision === 'yes') {
-          // Logic for background removal goes here (e.g., a third-party API or custom logic)
-          // For now, we assume it returns an image without the background.
           croppedImageBuffer = await removeBackground(croppedImageBuffer);
         }
         const uploadedUrl = await uploadImageToCloudinary(croppedImageBuffer);
 
-        const successMessage = `Your image was successfully processed with the "${style}" style. View it here: ${uploadedUrl}`;
+        const successMessage = `🚀 All done! Your profile icon has been processed with the "${style}" style. You can view it here: ${uploadedUrl}`;
         await sendTelexResponse(returnUrl, successMessage, 'image_processed', 'Profile Icon Agent');
 
         // Clean up user session after processing is complete
