@@ -1,12 +1,14 @@
 import sharp from 'sharp';
 import axios from 'axios';
+import { stylePresets } from './styles';
 
 export async function cropAndResizeImage(
   photoUrl: string,
   faceData: { coordinates: any; padding: number },
-  style: any
+  styleKey: keyof typeof stylePresets // Expect one of the predefined styles
 ) {
   const { coordinates, padding } = faceData;
+  const style = stylePresets[styleKey]; // Get the style settings based on user selection
 
   // Fetch the image from URL
   const imageResponse = await axios.get(photoUrl, { responseType: 'arraybuffer' });
@@ -35,11 +37,15 @@ export async function cropAndResizeImage(
     .png({ quality: 90 });
 
   // Apply filters based on the style
-  if (style.grayscale) processedImage = processedImage.grayscale();
-  if (style.sepia) processedImage = processedImage.tint({ r: 112, g: 66, b: 20 });
-  if (style.contrast) processedImage = processedImage.linear(style.contrast, 0);
-  if (style.blur) processedImage = processedImage.blur(style.blur);
-  if (style.sharpness) processedImage = processedImage.sharpen(style.sharpness);
+  if ('grayscale' in style) processedImage = processedImage.grayscale();
+  if ('sepia' in style) processedImage = processedImage.tint({ r: 112, g: 66, b: 20 });
+  if ('contrast' in style) processedImage = processedImage.linear(style.contrast, 0);
+  if ('blur' in style) processedImage = processedImage.blur(style.blur);
+  if ('sharpness' in style) processedImage = processedImage.sharpen(style.sharpness);
+  if ('saturation' in style) processedImage = processedImage.modulate({ saturation: style.saturation });
+  if ('brightness' in style) processedImage = processedImage.modulate({ brightness: style.brightness });
+  if ('hueshift' in style) processedImage = processedImage.modulate({ hue: style.hueshift });
+  if ('vignette' in style) processedImage = processedImage.tint({ r: 0, g: 0, b: 0 }).modulate({ brightness: 0.9 });
 
   return processedImage.toBuffer();
 }
