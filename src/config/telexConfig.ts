@@ -1,4 +1,4 @@
-const URL = 'https://91b2-197-211-58-214.ngrok-free.app'
+const URL = 'https://telin-profile-icon-agent-1.onrender.com'
 
 export const telexConfig: {} = {
   data: {

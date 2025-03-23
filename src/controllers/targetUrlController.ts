@@ -63,7 +63,7 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
         res.status(200).json({ message: parsedMessage });
         return;
       } else {
-        res.status(400).json({ message: "Invalid style. Please choose 'Cool', 'Professional', or 'Artistic'." });
+        res.status(200).json({ message: "Invalid style. Please choose 'Cool', 'Professional', 'Artistic', 'Retro', 'Vibrant', or 'cinematic'." });
         return;
       }
     }
@@ -95,9 +95,10 @@ export const targetUrlController = async (req: Request, res: Response): Promise<
 
         // Process the image
         const faceData = await detectFaceWithPadding(imageUrl);
-        if (!faceData.coordinates || faceData.coordinates.length === 0) {
+        if (!faceData.coordinates || Object.keys(faceData.coordinates).length === 0) {
           const errorMessage = `😞 Unfortunately, we couldn't detect a face in the image. Please upload a clearer image where your face is visible.`;
           await sendTelexResponse(returnUrl, errorMessage, 'error', 'Profile Icon Agent');
+          return
         }
         let croppedImageBuffer = await cropAndResizeImage(imageUrl, faceData, style);
         if (enhancement) {
